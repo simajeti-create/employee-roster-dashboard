@@ -3,3 +3,5 @@ server/data/*.db
 server/data/*.db-*
 dist/
 .env
+
+client.zip
