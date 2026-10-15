@@ -1,0 +1,264 @@
+@import "tailwindcss";
+
+/* ── Custom theme tokens ───────────────────────────────────────── */
+@theme {
+  /* ── Font stacks — hooks into Tailwind v4's html { font-family: var(--font-sans) } */
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* ── Colors */
+  --color-sidebar: #14141F;
+  --color-sidebar-hover: rgba(255,255,255,0.08);
+  --color-accent: #6C4CF1;
+  --color-accent-light: #9B7CFB;
+  --color-accent-tint: #EEEAFD;
+  --color-page-bg: #F5F4FA;
+  --color-card-border: #E6E4EF;
+  --color-ok: #1C9A6C;
+  --color-ok-bg: #E2F6EC;
+  --color-warn: #D79A2C;
+  --color-warn-bg: #FBF1DD;
+  --color-danger: #DC5346;
+  --color-danger-bg: #FCE8E5;
+  --color-on-shift-bg: #EEEAFD;
+  --color-on-shift: #6C4CF1;
+}
+
+/* ── Animations ───────────────────────────────────────────────── */
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  70%  { transform: scale(2.4); opacity: 0;   }
+  100% { transform: scale(2.4); opacity: 0;   }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes bar-grow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* ── Base resets ──────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    background: #F5F4FA;
+  }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+    border: 1px solid #E6E4EF;
+    background: #fff;
+    color: inherit;
+    border-radius: 8px;
+    padding: 5px 12px;
+    transition: background 0.15s, color 0.15s, border-color 0.15s,
+                box-shadow 0.2s, transform 0.2s;
+  }
+  button:hover { background: #F5F4FA; border-color: #9B7CFB; }
+
+  input, select, textarea {
+    font: inherit;
+    padding: 6px 10px;
+    border: 1px solid #E6E4EF;
+    border-radius: 8px;
+    outline: none;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: #6C4CF1;
+    box-shadow: 0 0 0 3px #EEEAFD;
+  }
+}
+
+/* ── Sidebar nav links ────────────────────────────────────────── */
+.nav-link {
+  transition: background 0.18s, color 0.18s, padding-left 0.18s;
+  padding-left: 12px; /* base = px-3; defined here so transition has a start value */
+}
+/* Reset button defaults that bleed through onto the Roster <button> nav item */
+button.nav-link {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.nav-link:not(.nav-link-active):hover {
+  background: rgba(255,255,255,0.07);
+  color: #fff;
+  padding-left: 16px;
+}
+.nav-link-active {
+  background: linear-gradient(135deg, #6C4CF1 0%, #9B7CFB 100%);
+  box-shadow: 0 2px 12px rgba(108,76,241,0.35);
+  padding-left: 16px;
+}
+/* clear browser search-input chrome */
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button { display: none; }
+
+/* ── Font helpers ─────────────────────────────────────────────── */
+.font-grotesk   { font-family: 'Space Grotesk', sans-serif; }
+.font-mono-data { font-family: 'IBM Plex Mono', monospace; }
+
+/* ── Page fade-up transition ──────────────────────────────────── */
+.page-enter { animation: fade-up 0.22s ease both; }
+
+/* ── Primary / danger buttons ────────────────────────────────── */
+button.primary {
+  background: linear-gradient(135deg, #6C4CF1 0%, #9B7CFB 100%) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(108,76,241,0.25);
+}
+button.primary:hover {
+  background: linear-gradient(135deg, #5c3de0 0%, #8b6ceb 100%) !important;
+  box-shadow: 0 4px 18px rgba(108,76,241,0.4) !important;
+  transform: translateY(-1px) !important;
+}
+button.danger  { border-color: #fca5a5 !important; color: #DC5346 !important; }
+button.danger:hover { background: #FCE8E5 !important; }
+
+/* ── Roster cell ──────────────────────────────────────────────── */
+.roster-cell { cursor: pointer; }
+.roster-cell:hover { background-color: #EEEAFD; }
+.roster-scroll { overflow-x: auto; }
+
+/* ── Avatar — rounded-square, supports active dot badge ─────── */
+.avatar {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
+  color: #fff;
+  position: relative;
+  transition: transform 0.2s;
+}
+.avatar.is-active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; right: -2px;
+  width: 8px; height: 8px;
+  background: #1C9A6C;
+  border-radius: 50%;
+  border: 2px solid #fff;
+}
+
+/* ── Soft table ───────────────────────────────────────────────── */
+.soft-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.soft-table th {
+  padding: 10px 14px; text-align: left; font-size: 11px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+  color: #9ca3af; border-bottom: 1px solid #E6E4EF;
+}
+.soft-table td {
+  padding: 10px 14px; vertical-align: middle;
+  border-bottom: 1px solid #F5F4FA;
+}
+.soft-table tbody tr:last-child td { border-bottom: none; }
+.soft-table tbody tr:hover td    { background: #EEEAFD; }
+.soft-table tbody tr:hover .avatar { transform: scale(1.1); }
+
+/* ── Status / state badge pills ───────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 2px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+/* colored dot before every badge */
+.badge::before {
+  content: '';
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  display: inline-block;
+}
+.badge.on-shift { background: var(--color-on-shift-bg); color: var(--color-on-shift); }
+.badge.on-shift::before { background: #6C4CF1; animation: pulse-ring 1.8s ease-out infinite; }
+.badge.on-break { background: var(--color-warn-bg); color: var(--color-warn); }
+.badge.on-break::before { background: #D79A2C; }
+.badge.on-leave { background: var(--color-danger-bg); color: var(--color-danger); }
+.badge.on-leave::before { background: #DC5346; }
+.badge.off      { background: #f3f4f6; color: #6b7280; }
+.badge.off::before      { background: #9ca3af; }
+.badge.approved { background: var(--color-ok-bg); color: var(--color-ok); }
+.badge.approved::before { background: #1C9A6C; }
+.badge.pending  { background: var(--color-warn-bg); color: var(--color-warn); }
+.badge.pending::before  { background: #D79A2C; }
+.badge.rejected { background: var(--color-danger-bg); color: var(--color-danger); }
+.badge.rejected::before { background: #DC5346; }
+.badge.active   { background: var(--color-ok-bg); color: var(--color-ok); }
+.badge.active::before   { background: #1C9A6C; animation: pulse-ring 1.8s ease-out infinite; }
+.badge.inactive { background: #f3f4f6; color: #6b7280; }
+.badge.inactive::before { background: #9ca3af; }
+
+/* ── Currently Active list rows ──────────────────────────────── */
+.active-list-row {
+  cursor: pointer;
+  border-radius: 10px;
+  transition: background 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+.active-list-row:hover {
+  background: rgba(108, 76, 241, 0.06);
+  box-shadow: 0 2px 10px rgba(108, 76, 241, 0.1);
+}
+.active-list-row:hover .avatar {
+  transform: scale(1.1);
+}
+.active-list-row:focus-visible {
+  box-shadow: 0 0 0 2px #9B7CFB;
+}
+
+/* ── Stat card hover ──────────────────────────────────────────── */
+.stat-card {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 28px rgba(108,76,241,0.18);
+}
+.stat-icon { transition: transform 0.2s; }
+.stat-card:hover .stat-icon { transform: scale(1.12) rotate(-6deg); }
+
+/* ── NSA animated bar ─────────────────────────────────────────── */
+.nsa-bar {
+  transform-origin: left;
+  animation: bar-grow 0.75s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ── Leave approval stepper ───────────────────────────────────── */
+.leave-stepper      { display: flex; align-items: center; gap: 4px; }
+.stepper-dot        {
+  width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; flex-shrink: 0;
+}
+.stepper-line       { height: 2px; width: 20px; flex-shrink: 0; }
+.stepper-label      {
+  margin-left: 6px; font-size: 11px; font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* ── Roster shift/leave text ──────────────────────────────────── */
+.shift-time { font-size: 12px; color: #374151; font-family: 'IBM Plex Mono', monospace; }
+.leave-tag  { font-size: 12px; color: var(--color-danger); }
+
+/* ── Form layout helpers ───────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.field label { font-size: 12px; color: #6b7280; font-weight: 500; }
+.form-row { display: flex; gap: 12px; }
+.form-row .field { flex: 1; }
+.form-actions { display: flex; gap: 8px; margin-top: 12px; }
+.error-text { color: #DC5346; font-size: 13px; margin: 4px 0; }
+.empty-state { color: #9ca3af; font-style: italic; font-size: 14px; padding: 8px 0; }
+.break-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: #374151; margin-bottom: 6px;
+}
