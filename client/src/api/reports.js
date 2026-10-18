@@ -5,6 +5,10 @@ export function getWeeklySummary(weekStart) {
   return get(`/reports/weekly${query}`);
 }
 
+export function getRangeSummary({ start, end }) {
+  return get(`/reports/summary?start=${start}&end=${end}`);
+}
+
 export function getNsaReport({ start, end } = {}) {
   const params = new URLSearchParams();
   if (start) params.set('start', start);

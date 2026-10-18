@@ -43,3 +43,10 @@ CREATE TABLE IF NOT EXISTS leaves (
 );
 
 CREATE INDEX IF NOT EXISTS idx_leaves_employee_dates ON leaves(employee_id, start_date, end_date);
+
+CREATE TABLE IF NOT EXISTS undo_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  label TEXT NOT NULL,
+  before_json TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

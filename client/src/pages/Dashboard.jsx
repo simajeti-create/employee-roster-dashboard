@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import DepartmentFilter from '../components/filters/DepartmentFilter.jsx';
-import StatusFilter from '../components/filters/StatusFilter.jsx';
 import CurrentlyActiveWidget from '../components/active/CurrentlyActiveWidget.jsx';
 import EmployeeDetailModal from '../components/active/EmployeeDetailModal.jsx';
 import * as employeesApi from '../api/employees.js';
@@ -59,10 +58,33 @@ function IcoCalendar({ color }) {
     </svg>
   );
 }
+function IcoMoon({ color }) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16.5 11.5A7 7 0 1 1 8.5 3.5a5.5 5.5 0 0 0 8 8z"/>
+    </svg>
+  );
+}
 const STAT_CARDS = [
   { key: 'On Shift', label: 'On shift now',  iconBg: '#EEEAFD', iconColor: '#6C4CF1', IcoComp: IcoBarChart },
   { key: 'On Break', label: 'On break',       iconBg: '#FBF1DD', iconColor: '#D79A2C', IcoComp: IcoClock    },
   { key: 'On Leave', label: 'On leave today', iconBg: '#FCE8E5', iconColor: '#DC5346', IcoComp: IcoCalendar },
+  { key: 'Off',      label: 'Off today',      iconBg: '#F3F4F6', iconColor: '#6B7280', IcoComp: IcoMoon     },
+];
+
+const STATUS_CHIPS = [
+  { key: '',         label: 'All'      },
+  { key: 'On Shift', label: 'On shift' },
+  { key: 'On Break', label: 'On break' },
+  { key: 'On Leave', label: 'On leave' },
+  { key: 'Off',      label: 'Off'      },
+];
+
+const MIX_SEGMENTS = [
+  { key: 'On Shift', label: 'On shift', color: '#FFFFFF' },
+  { key: 'On Break', label: 'On break', color: '#FBD38D' },
+  { key: 'On Leave', label: 'On leave', color: '#FCA5A5' },
+  { key: 'Off',      label: 'Off',      color: 'rgba(255,255,255,0.28)' },
 ];
 
 // ── Count-up animation hook ────────────────────────────────────────
@@ -74,17 +96,19 @@ function useCountUp(target) {
   useEffect(() => {
     const from = prevRef.current;
     const to   = target;
-    prevRef.current = to;
     if (from === to) return;
 
     const duration  = 600;
     const startTime = performance.now();
 
+    // prevRef only advances once the animation finishes, so a cancelled run (StrictMode
+    // re-mount in dev) restarts from the old value instead of leaving the card stuck at 0.
     function tick(now) {
       const p     = Math.min((now - startTime) / duration, 1);
       const eased = 1 - Math.pow(1 - p, 3);
       setDisplay(Math.round(from + (to - from) * eased));
       if (p < 1) rafRef.current = requestAnimationFrame(tick);
+      else prevRef.current = to;
     }
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(tick);
@@ -94,25 +118,37 @@ function useCountUp(target) {
   return display;
 }
 
-function StatCard({ label, iconBg, iconColor, IcoComp, count, prefix = '', formatFn }) {
+function StatCard({ label, iconBg, iconColor, IcoComp, count, total = 0, prefix = '', formatFn }) {
   const display = useCountUp(count);
   const formatted = formatFn ? formatFn(display) : String(display);
+  const share = total > 0 ? count / total : 0;
+  const circumference = 2 * Math.PI * 26;
   return (
     <div
-      className="stat-card bg-white rounded-2xl p-5 flex flex-col gap-3"
-      style={{ border: '1px solid #E6E4EF' }}
+      className="stat-card bg-white rounded-2xl p-5 flex items-center justify-between gap-3"
+      style={{ border: '1px solid #ECEAF4', boxShadow: '0 1px 2px rgba(26,26,46,0.04), 0 8px 24px -12px rgba(108,76,241,0.14)' }}
     >
-      <div
-        className="stat-icon w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-        style={{ background: iconBg }}
-      >
-        <IcoComp color={iconColor} />
-      </div>
-      <div>
-        <div className="font-mono-data text-2xl font-bold leading-none" style={{ color: '#1a1a2e' }}>
+      <div className="min-w-0">
+        <div className="text-xs font-medium text-gray-400" style={{ letterSpacing: '0.02em' }}>{label}</div>
+        <div className="font-grotesk font-bold leading-none mt-2" style={{ color: '#1a1a2e', fontSize: 36 }}>
           {prefix}{formatted}
         </div>
-        <div className="text-xs text-gray-400 mt-1.5 font-medium">{label}</div>
+        <div className="text-xs mt-2" style={{ color: iconColor, fontWeight: 600 }}>
+          {total > 0 ? `${Math.round(share * 100)}% of team` : '—'}
+        </div>
+      </div>
+      <div className="stat-icon relative shrink-0" style={{ width: 64, height: 64 }}>
+        <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+          <circle cx="32" cy="32" r="26" fill="none" stroke={iconBg} strokeWidth="6" />
+          <circle
+            cx="32" cy="32" r="26" fill="none" stroke={iconColor} strokeWidth="6" strokeLinecap="round"
+            strokeDasharray={circumference} strokeDashoffset={circumference * (1 - share)}
+            transform="rotate(-90 32 32)" style={{ transition: 'stroke-dashoffset 0.8s ease' }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <IcoComp color={iconColor} />
+        </div>
       </div>
     </div>
   );
@@ -128,6 +164,7 @@ export default function Dashboard() {
   const [statusFilter,    setStatusFilter]     = useState('');
   const [loading,         setLoading]          = useState(true);
   const [selectedEntry,   setSelectedEntry]   = useState(null);
+  const [now,             setNow]             = useState(() => new Date());
 
   const weekStart = startOfWeek(todayStr());
 
@@ -151,6 +188,11 @@ export default function Dashboard() {
     const interval = setInterval(loadActive, ACTIVE_REFRESH_MS);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
@@ -201,24 +243,55 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col gap-6">
 
-      {/* ── Greeting header ─────────────────────────────────── */}
-      <div>
-        <h1 className="font-grotesk text-2xl font-bold m-0" style={{ color: '#1a1a2e' }}>
-          {greeting()}, {USER_FIRST}
-        </h1>
-        <p className="text-sm text-gray-400 mt-1 m-0">
-          {todayLabel()} — here&apos;s where the pod stands right now.
-        </p>
-      </div>
+      {/* ── Hero banner ─────────────────────────────────────── */}
+      <div
+        className="rounded-2xl p-6 text-white relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #3B2A9E 0%, #5B3DE0 45%, #8B6BF5 100%)', boxShadow: '0 12px 32px -10px rgba(91,61,224,0.45)' }}
+      >
+        <div aria-hidden="true" style={{ position: 'absolute', right: -60, top: -80, width: 260, height: 260, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+        <div aria-hidden="true" style={{ position: 'absolute', right: 120, bottom: -110, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+        <div className="relative">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="font-grotesk text-2xl font-bold m-0">{greeting()}, {USER_FIRST}</h1>
+            <p className="text-sm mt-1 m-0" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              {todayLabel()} — here&apos;s where the pod stands right now.
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="font-mono-data text-3xl font-bold leading-none">
+              {now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+            <div className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.8)' }}>
+              {activeEntries.length} active employees
+            </div>
+          </div>
+        </div>
 
-      {/* ── Filters ─────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <DepartmentFilter departments={departments} value={departmentFilter} onChange={setDepartmentFilter} />
-        <StatusFilter value={statusFilter} onChange={setStatusFilter} />
+        {activeEntries.length > 0 && (
+          <div className="mt-5">
+            <div className="flex overflow-hidden rounded-full" style={{ height: 8, gap: 2 }}>
+              {MIX_SEGMENTS.map(({ key, color }) => (
+                counts[key] ? (
+                  <div key={key} style={{ width: `${(counts[key] / activeEntries.length) * 100}%`, background: color, transition: 'width 0.6s ease' }} />
+                ) : null
+              ))}
+            </div>
+            <div className="flex gap-4 flex-wrap mt-2 text-xs" style={{ color: 'rgba(255,255,255,0.85)' }}>
+              {MIX_SEGMENTS.map(({ key, label, color }) => (
+                <span key={key} className="flex items-center gap-1.5">
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: color, display: 'inline-block' }} />
+                  {label} {counts[key] ?? 0}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        </div>
       </div>
 
       {/* ── Stat cards ──────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
         {STAT_CARDS.map(({ key, label, iconBg, iconColor, IcoComp }) => (
           <StatCard
             key={key}
@@ -227,17 +300,51 @@ export default function Dashboard() {
             iconColor={iconColor}
             IcoComp={IcoComp}
             count={counts[key] ?? 0}
+            total={activeEntries.length}
           />
         ))}
       </div>
 
       {/* ── Currently Active ────────────────────────────────── */}
-      <div className="bg-white rounded-2xl p-6" style={{ border: '1px solid #E6E4EF' }}>
-        <div className="mb-4">
-          <h2 className="font-grotesk text-base font-semibold m-0" style={{ color: '#1a1a2e' }}>
-            Currently active
-          </h2>
-          <p className="text-xs text-gray-400 mt-0.5">Live shift status, updates automatically</p>
+      <div
+        className="bg-white rounded-2xl p-6"
+        style={{ border: '1px solid #ECEAF4', boxShadow: '0 1px 2px rgba(26,26,46,0.04), 0 8px 24px -12px rgba(108,76,241,0.14)' }}
+      >
+        <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
+          <div>
+            <h2 className="font-grotesk text-lg font-semibold m-0" style={{ color: '#1a1a2e' }}>
+              Currently active
+            </h2>
+            <p className="text-xs text-gray-400 mt-1 m-0 flex items-center gap-1.5">
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#1C9A6C', display: 'inline-block' }} />
+              Live · refreshes every minute
+            </p>
+          </div>
+          <DepartmentFilter departments={departments} value={departmentFilter} onChange={setDepartmentFilter} />
+        </div>
+
+        <div className="flex gap-2 flex-wrap mb-4" role="tablist" aria-label="Filter by status">
+          {STATUS_CHIPS.map(({ key, label }) => {
+            const active = statusFilter === key;
+            const n = key ? (counts[key] ?? 0) : activeEntries.length;
+            return (
+              <button
+                key={label}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setStatusFilter(key)}
+                className="rounded-full text-xs font-semibold"
+                style={{
+                  padding: '5px 14px',
+                  background: active ? '#1a1a2e' : '#fff',
+                  color: active ? '#fff' : '#6b7280',
+                  borderColor: active ? '#1a1a2e' : '#E6E4EF',
+                }}
+              >
+                {label} <span style={{ opacity: 0.6, marginLeft: 4 }}>{n}</span>
+              </button>
+            );
+          })}
         </div>
         <CurrentlyActiveWidget
           entries={filteredActiveEntries}

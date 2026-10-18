@@ -132,10 +132,10 @@ button.danger:hover { background: #FCE8E5 !important; }
 .roster-cell:hover { background-color: #EEEAFD; }
 .roster-scroll { overflow-x: auto; }
 
-/* ── Avatar — rounded-square, supports active dot badge ─────── */
+/* ── Avatar — gradient circle, supports active dot badge ─────── */
 .avatar {
   width: 32px; height: 32px;
-  border-radius: 8px;
+  border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 12px; font-weight: 700; flex-shrink: 0;
   color: #fff;
@@ -145,8 +145,8 @@ button.danger:hover { background: #FCE8E5 !important; }
 .avatar.is-active::after {
   content: '';
   position: absolute;
-  bottom: -2px; right: -2px;
-  width: 8px; height: 8px;
+  bottom: 0; right: 0;
+  width: 11px; height: 11px;
   background: #1C9A6C;
   border-radius: 50%;
   border: 2px solid #fff;

@@ -4,6 +4,7 @@ import * as reportController from '../controllers/reportController.js';
 const router = Router();
 
 router.get('/weekly', reportController.weekly);
+router.get('/summary', reportController.summary);
 router.get('/nsa', reportController.nsa);
 
 export default router;

@@ -1,4 +1,5 @@
 import * as shiftService from '../services/shiftService.js';
+import { withUndo } from '../services/undoService.js';
 
 export function list(req, res) {
   const { start, end, employee_id } = req.query;
@@ -20,17 +21,53 @@ export function create(req, res) {
   if (existing) {
     return res.status(409).json({ error: 'A shift already exists for this employee on this date' });
   }
-  res.status(201).json(shiftService.createShift(req.body));
+  const created = withUndo(
+    `Added shift on ${work_date}`,
+    [{ employee_id, work_date }],
+    () => shiftService.createShift(req.body)
+  );
+  res.status(201).json(created);
 }
 
 export function update(req, res) {
-  const shift = shiftService.updateShift(req.params.id, req.body);
-  if (!shift) return res.status(404).json({ error: 'Shift not found' });
+  const current = shiftService.getShift(req.params.id);
+  if (!current) return res.status(404).json({ error: 'Shift not found' });
+  const keys = [{ employee_id: current.employee_id, work_date: current.work_date }];
+  if (req.body.work_date && req.body.work_date !== current.work_date) {
+    keys.push({ employee_id: current.employee_id, work_date: req.body.work_date });
+  }
+  const shift = withUndo(`Edited shift on ${current.work_date}`, keys, () => shiftService.updateShift(req.params.id, req.body));
   res.json(shift);
 }
 
 export function remove(req, res) {
-  const deleted = shiftService.deleteShift(req.params.id);
+  const current = shiftService.getShift(req.params.id);
+  const deleted = current
+    ? withUndo(
+        `Deleted shift on ${current.work_date}`,
+        [{ employee_id: current.employee_id, work_date: current.work_date }],
+        () => shiftService.deleteShift(req.params.id)
+      )
+    : false;
   if (!deleted) return res.status(404).json({ error: 'Shift not found' });
   res.status(204).end();
+}
+
+export function bulkSet(req, res) {
+  const { employee_id, start, end, start_time, end_time } = req.body;
+  if (!employee_id || !start || !end || !start_time || !end_time) {
+    return res.status(400).json({ error: 'employee_id, start, end, start_time, and end_time are required' });
+  }
+  if (start > end) {
+    return res.status(400).json({ error: 'From date must not be after to date' });
+  }
+  res.json(shiftService.bulkSetShifts(req.body));
+}
+
+export function applyDefaults(req, res) {
+  const { start, end, employee_ids } = req.body;
+  if (!start || !end || start > end) {
+    return res.status(400).json({ error: 'start and end are required, and start must not be after end' });
+  }
+  res.json(shiftService.applyDefaultShifts({ start, end, employee_ids }));
 }

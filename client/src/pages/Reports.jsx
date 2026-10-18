@@ -1,7 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import * as reportsApi from '../api/reports.js';
-import { todayStr, addDays } from '../utils/dateUtils.js';
+import { todayStr, addDays, startOfWeek, formatDate } from '../utils/dateUtils.js';
+
+const MODES = [
+  { key: 'week',   label: 'Week'  },
+  { key: 'month',  label: 'Month' },
+  { key: 'custom', label: 'From – To' },
+];
 
 function NsaBarChart({ rows }) {
   const totals = {};
@@ -49,37 +55,87 @@ function NsaBarChart({ rows }) {
   );
 }
 
+function prettyDate(dateStr) {
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// MM/DD/YYYY, MM/DD/YYYY, … → compact chips; long lists collapse behind a count.
+function DateChips({ value }) {
+  const dates = value ? value.split(', ') : [];
+  const shown = dates.slice(0, 6);
+  return (
+    <div className="flex flex-wrap gap-1.5" style={{ maxWidth: 420 }}>
+      {shown.map((d) => (
+        <span key={d} className="font-mono-data rounded-md" style={{ fontSize: 11, padding: '2px 6px', background: '#F5F4FA', color: '#4b5563' }}>
+          {d.slice(0, 5)}
+        </span>
+      ))}
+      {dates.length > shown.length && (
+        <span className="text-xs text-gray-400" title={dates.join(', ')} style={{ alignSelf: 'center' }}>
+          +{dates.length - shown.length} more
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function Reports() {
-  const [anchorDate, setAnchorDate] = useState(todayStr());
+  const [mode, setMode] = useState('week');
+  const [anchor, setAnchor] = useState(todayStr());
+  const [customStart, setCustomStart] = useState(startOfWeek(todayStr()));
+  const [customEnd, setCustomEnd] = useState(addDays(startOfWeek(todayStr()), 6));
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const [nsaRows, setNsaRows] = useState(null);
   const [nsaLoading, setNsaLoading] = useState(true);
-  const [nsaStart, setNsaStart] = useState('');
-  const [nsaEnd, setNsaEnd] = useState('');
 
-  async function load(date) {
+  // The one selection that drives both the summary and the NSA report.
+  const { start, end } = useMemo(() => {
+    if (mode === 'week') {
+      const s = startOfWeek(anchor);
+      return { start: s, end: addDays(s, 6) };
+    }
+    if (mode === 'month') {
+      const d = new Date(`${anchor}T00:00:00`);
+      return {
+        start: formatDate(new Date(d.getFullYear(), d.getMonth(), 1)),
+        end: formatDate(new Date(d.getFullYear(), d.getMonth() + 1, 0)),
+      };
+    }
+    return { start: customStart, end: customEnd };
+  }, [mode, anchor, customStart, customEnd]);
+
+  const rangeValid = Boolean(start && end && start <= end);
+
+  useEffect(() => {
+    if (!rangeValid) return undefined;
+    let cancelled = false;
     setLoading(true);
-    setData(await reportsApi.getWeeklySummary(date));
-    setLoading(false);
-  }
-
-  async function loadNsa(start, end) {
     setNsaLoading(true);
-    setNsaRows(await reportsApi.getNsaReport({ start, end }));
-    setNsaLoading(false);
+    Promise.all([
+      reportsApi.getRangeSummary({ start, end }),
+      reportsApi.getNsaReport({ start, end }),
+    ]).then(([summary, nsa]) => {
+      if (cancelled) return;
+      setData(summary);
+      setNsaRows(nsa);
+      setLoading(false);
+      setNsaLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [start, end, rangeValid]);
+
+  function step(direction) {
+    if (mode === 'week') {
+      setAnchor((d) => addDays(d, 7 * direction));
+    } else {
+      setAnchor((d) => {
+        const x = new Date(`${d}T00:00:00`);
+        return formatDate(new Date(x.getFullYear(), x.getMonth() + direction, 1));
+      });
+    }
   }
-
-  useEffect(() => {
-    load(anchorDate);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anchorDate]);
-
-  useEffect(() => {
-    loadNsa(nsaStart, nsaEnd);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nsaStart, nsaEnd]);
 
   function exportToExcel() {
     const sheetData = nsaRows.map((r) => ({
@@ -93,46 +149,79 @@ export default function Reports() {
     const sheet = XLSX.utils.json_to_sheet(sheetData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, sheet, 'NSA');
-    XLSX.writeFile(wb, 'NSA_Report.xlsx');
+    XLSX.writeFile(wb, `NSA_Report_${start}_to_${end}.xlsx`);
   }
+
+  const label = mode === 'month'
+    ? new Date(`${start}T00:00:00`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+    : rangeValid ? `${prettyDate(start)} – ${prettyDate(end)}` : 'Pick a valid range';
+
+  const totalAmount = (nsaRows ?? []).reduce((s, r) => s + (Number(r.total_amount) || 0), 0);
 
   return (
     <div className="flex flex-col gap-6">
-      <h2 className="font-grotesk text-xl font-bold m-0" style={{ color: '#1a1a2e' }}>
-        Weekly Summary
-      </h2>
+      <div>
+        <h1 className="font-grotesk text-2xl font-bold m-0" style={{ color: '#1a1a2e' }}>Reports</h1>
+        <p className="text-sm text-gray-400 mt-1 m-0">Hours, leave and night shift allowance for the period you choose.</p>
+      </div>
 
-      {/* Week navigation */}
-      <div className="bg-white rounded-2xl p-6" style={{ border: '1px solid #E6E4EF' }}>
-        <div className="flex items-center gap-3 flex-wrap mb-6">
-          <button
-            onClick={() => setAnchorDate((d) => addDays(d, -7))}
-            className="px-4 py-1.5 rounded-full text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            ← Previous week
-          </button>
-          <span className="font-mono-data text-sm text-gray-500 font-medium">
-            {data ? `${data.week_start} – ${data.week_end}` : ''}
-          </span>
-          <button
-            onClick={() => setAnchorDate((d) => addDays(d, 7))}
-            className="px-4 py-1.5 rounded-full text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            Next week →
-          </button>
-          <button
-            onClick={() => setAnchorDate(todayStr())}
-            className="px-4 py-1.5 rounded-full text-sm font-medium text-white transition-colors"
-            style={{ background: 'linear-gradient(135deg, #6C4CF1, #9B7CFB)', border: 'none' }}
-          >
-            This week
-          </button>
+      {/* Period selector */}
+      <div className="bg-white rounded-2xl p-5 flex items-center gap-4 flex-wrap" style={{ border: '1px solid #E6E4EF' }}>
+        <div className="flex rounded-full p-1" style={{ background: '#F5F4FA' }} role="tablist" aria-label="Report period">
+          {MODES.map(({ key, label: l }) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={mode === key}
+              onClick={() => setMode(key)}
+              className="rounded-full text-sm font-semibold"
+              style={{
+                border: 'none',
+                padding: '6px 18px',
+                background: mode === key ? 'linear-gradient(135deg, #6C4CF1, #9B7CFB)' : 'transparent',
+                color: mode === key ? '#fff' : '#6b7280',
+              }}
+            >
+              {l}
+            </button>
+          ))}
         </div>
 
-        {loading || !data ? (
-          <p className="text-gray-400 text-sm">Loading…</p>
+        {mode !== 'custom' ? (
+          <div className="flex items-center gap-2">
+            <button onClick={() => step(-1)} aria-label={`Previous ${mode}`} className="rounded-full" style={{ padding: '6px 14px' }}>←</button>
+            <span className="font-grotesk text-sm font-semibold" style={{ color: '#1a1a2e', minWidth: 210, textAlign: 'center' }}>{label}</span>
+            <button onClick={() => step(1)} aria-label={`Next ${mode}`} className="rounded-full" style={{ padding: '6px 14px' }}>→</button>
+            <button
+              onClick={() => setAnchor(todayStr())}
+              className="rounded-full text-sm font-medium"
+              style={{ color: '#6C4CF1', borderColor: '#D5CBFB', background: '#EEEAFD' }}
+            >
+              {mode === 'week' ? 'This week' : 'This month'}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-gray-500">From</span>
+            <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} style={{ width: 'auto' }} />
+            <span className="text-sm text-gray-500">To</span>
+            <input type="date" value={customEnd} min={customStart} onChange={(e) => setCustomEnd(e.target.value)} style={{ width: 'auto' }} />
+            {!rangeValid && <span className="text-sm" style={{ color: '#DC5346' }}>From date must be on or before the to date.</span>}
+          </div>
+        )}
+      </div>
+
+      {/* Summary */}
+      <h2 className="font-grotesk text-xl font-bold m-0" style={{ color: '#1a1a2e' }}>
+        Hours &amp; leave summary
+      </h2>
+      <div className="bg-white rounded-2xl p-6" style={{ border: '1px solid #E6E4EF' }}>
+        {!rangeValid ? (
+          <p className="text-gray-400 italic text-sm m-0">Choose a valid date range to see the summary.</p>
+        ) : loading || !data ? (
+          <p className="text-gray-400 text-sm m-0">Loading…</p>
         ) : data.summary.length === 0 ? (
-          <p className="text-gray-400 italic text-sm">No employees to report on yet.</p>
+          <p className="text-gray-400 italic text-sm m-0">No employees to report on yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="soft-table">
@@ -172,10 +261,18 @@ export default function Reports() {
         Night Shift Allowance (NSA)
       </h2>
       <div className="bg-white rounded-2xl p-6" style={{ border: '1px solid #E6E4EF' }}>
-        <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-          <p className="text-sm text-gray-500 m-0">
-            Shifts starting at or after 5:30 PM — ₹900 per qualifying day.
-          </p>
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+          <div>
+            <p className="text-sm text-gray-500 m-0">
+              Shifts starting at or after 5:30 PM — ₹900 per qualifying day.
+            </p>
+            {rangeValid && nsaRows && nsaRows.length > 0 && (
+              <p className="text-sm m-0 mt-1" style={{ color: '#1a1a2e' }}>
+                <strong>₹{totalAmount.toLocaleString()}</strong>
+                <span className="text-gray-400"> across {nsaRows.length} employee{nsaRows.length === 1 ? '' : 's'} · {label}</span>
+              </p>
+            )}
+          </div>
           {nsaRows && nsaRows.length > 0 && (
             <button
               onClick={exportToExcel}
@@ -187,41 +284,17 @@ export default function Reports() {
           )}
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap mb-6">
-          <span className="text-sm text-gray-500">From</span>
-          <input
-            type="date"
-            value={nsaStart}
-            onChange={(e) => setNsaStart(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600"
-          />
-          <span className="text-sm text-gray-500">To</span>
-          <input
-            type="date"
-            value={nsaEnd}
-            onChange={(e) => setNsaEnd(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600"
-          />
-          {(nsaStart || nsaEnd) && (
-            <button
-              onClick={() => { setNsaStart(''); setNsaEnd(''); }}
-              className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-
-        {nsaLoading ? (
-          <p className="text-gray-400 text-sm">Loading…</p>
+        {!rangeValid ? (
+          <p className="text-gray-400 italic text-sm m-0">Choose a valid date range to see the allowance.</p>
+        ) : nsaLoading ? (
+          <p className="text-gray-400 text-sm m-0">Loading…</p>
         ) : !nsaRows || nsaRows.length === 0 ? (
-          <p className="text-gray-400 italic text-sm">
-            No qualifying night shifts found. Make sure employees have Email ID and Project Name set.
+          <p className="text-gray-400 italic text-sm m-0">
+            No qualifying night shifts in this period. Make sure employees have Email ID and Project Name set.
           </p>
         ) : (
           <>
-            {/* Bar chart — key on nsaRows so animation re-runs on data change */}
-            <div key={nsaRows.length + (nsaStart || '') + (nsaEnd || '')}>
+            <div key={`${nsaRows.length}-${start}-${end}`}>
               <NsaBarChart rows={nsaRows} />
             </div>
 
@@ -232,9 +305,10 @@ export default function Reports() {
                     <th>Email ID</th>
                     <th>Name</th>
                     <th>Project Name</th>
-                    <th>Type of Allowance</th>
-                    <th>Total Amount (INR)</th>
-                    <th>Date Worked</th>
+                    <th>Type</th>
+                    <th>Days</th>
+                    <th>Total amount (INR)</th>
+                    <th>Dates worked</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -244,8 +318,9 @@ export default function Reports() {
                       <td className="font-medium" style={{ color: '#1a1a2e' }}>{row.name}</td>
                       <td className="text-gray-600">{row.project_name}</td>
                       <td style={{ color: '#1a1a2e' }}>{row.type_of_allowance}</td>
-                      <td className="font-mono-data" style={{ color: '#1a1a2e' }}>₹{row.total_amount}</td>
-                      <td className="font-mono-data text-gray-600">{row.date_worked}</td>
+                      <td className="font-mono-data" style={{ color: '#1a1a2e' }}>{row.total_amount / 900}</td>
+                      <td className="font-mono-data" style={{ color: '#1a1a2e' }}>₹{row.total_amount.toLocaleString()}</td>
+                      <td><DateChips value={row.date_worked} /></td>
                     </tr>
                   ))}
                 </tbody>

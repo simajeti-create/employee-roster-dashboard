@@ -4,6 +4,8 @@ import Employees from './pages/Employees.jsx';
 import Leaves from './pages/Leaves.jsx';
 import Reports from './pages/Reports.jsx';
 import Roster from './pages/Roster.jsx';
+import LeaveCalendar from './pages/LeaveCalendar.jsx';
+import TeamOverview from './pages/TeamOverview.jsx';
 
 // ── Inline SVG nav icons ───────────────────────────────────────────
 function IconGrid() {
@@ -57,6 +59,8 @@ const PAGE_NAMES = {
   '/employees': 'Employees',
   '/leaves':    'Leaves',
   '/reports':   'Reports',
+  '/leave-calendar': 'Leave calendar',
+  '/team':           'Team overview',
 };
 
 const NAV_GROUPS = [
@@ -72,6 +76,13 @@ const NAV_GROUPS = [
     items: [
       { to: '/employees', isNavLink: true, Icon: IconUsers,   label: 'Employees' },
       { to: '/leaves',    isNavLink: true, Icon: IconLeafCal, label: 'Leaves'    },
+    ],
+  },
+  {
+    label: 'Insights',
+    items: [
+      { to: '/leave-calendar', isNavLink: true, Icon: IconLeafCal,  label: 'Leave calendar' },
+      { to: '/team',           isNavLink: true, Icon: IconUsers,    label: 'Team overview'  },
     ],
   },
   {
@@ -238,7 +249,7 @@ export default function App() {
           <div
             className="ml-auto shrink-0 flex items-center justify-center font-grotesk font-bold text-white"
             style={{
-              width: 34, height: 34, borderRadius: 9, fontSize: 12,
+              width: 34, height: 34, borderRadius: "50%", fontSize: 12,
               background: 'linear-gradient(135deg, #6C4CF1 0%, #9B7CFB 100%)',
               cursor: 'default', letterSpacing: '0.04em',
             }}
@@ -256,6 +267,8 @@ export default function App() {
               <Route path="/employees" element={<Employees />} />
               <Route path="/leaves"    element={<Leaves />} />
               <Route path="/reports"   element={<Reports />} />
+              <Route path="/leave-calendar" element={<LeaveCalendar />} />
+              <Route path="/team"           element={<TeamOverview />} />
             </Routes>
           </div>
         </main>

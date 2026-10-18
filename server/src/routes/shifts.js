@@ -4,6 +4,8 @@ import * as breakController from '../controllers/breakController.js';
 
 const router = Router();
 
+router.post('/apply-defaults', shiftController.applyDefaults);
+router.post('/bulk', shiftController.bulkSet);
 router.get('/', shiftController.list);
 router.get('/:id', shiftController.get);
 router.post('/', shiftController.create);

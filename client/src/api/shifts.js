@@ -20,3 +20,11 @@ export function deleteShift(id) {
 export function listBreaksForShift(shiftId) {
   return get(`/shifts/${shiftId}/breaks`);
 }
+
+export function bulkSetShifts(data) {
+  return post('/shifts/bulk', data);
+}
+
+export function applyDefaultShifts(data) {
+  return post('/shifts/apply-defaults', data);
+}

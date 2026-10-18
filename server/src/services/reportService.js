@@ -16,8 +16,15 @@ function weekdaysInRange(start, end) {
 
 export function getWeeklySummary(weekStartInput) {
   const weekStart = startOfWeek(weekStartInput || new Date().toISOString().slice(0, 10));
-  const weekEnd = addDays(weekStart, 6);
+  return buildSummary(weekStart, addDays(weekStart, 6));
+}
 
+// Same per-employee summary for any inclusive date range (week, month or custom).
+export function getRangeSummary({ start, end }) {
+  return buildSummary(start, end);
+}
+
+function buildSummary(weekStart, weekEnd) {
   const employees = db.prepare('SELECT * FROM employees ORDER BY name').all();
   const shifts = db
     .prepare('SELECT * FROM shifts WHERE work_date BETWEEN ? AND ?')

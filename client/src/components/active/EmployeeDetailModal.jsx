@@ -126,7 +126,7 @@ export default function EmployeeDetailModal({ employee, status, shift, leaveType
               className="avatar"
               style={{
                 background: avatarGradient(employee.name),
-                width: 44, height: 44, borderRadius: 11,
+                width: 44, height: 44,
                 fontSize: 15,
               }}
             >

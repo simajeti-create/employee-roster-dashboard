@@ -6,6 +6,7 @@ import breaksRouter from './routes/breaks.js';
 import leavesRouter from './routes/leaves.js';
 import activeRouter from './routes/active.js';
 import reportsRouter from './routes/reports.js';
+import undoRouter from './routes/undo.js';
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use('/api/breaks', breaksRouter);
 app.use('/api/leaves', leavesRouter);
 app.use('/api/active', activeRouter);
 app.use('/api/reports', reportsRouter);
+app.use('/api/undo', undoRouter);
 
 app.use((err, req, res, next) => {
   console.error(err);
