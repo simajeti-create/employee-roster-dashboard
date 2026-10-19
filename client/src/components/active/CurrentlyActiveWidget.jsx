@@ -18,11 +18,11 @@ const STATUS_STYLES = {
   Off:        { bg: '#F3F4F6', fg: '#4B5563', dot: '#9CA3AF', label: 'Off today' },
 };
 
-function initials(name) {
+export function initials(name) {
   return name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
 
-function avatarGradient(name) {
+export function avatarGradient(name) {
   let hash = 0;
   for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) & 0xffff;
   const [a, b] = AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
@@ -38,14 +38,14 @@ function dateStr(d) {
 }
 
 // S2 when the shift starts at 17:30 or later, otherwise S1 (same rule as the roster grid).
-function shiftCode(startHHMM) {
+export function shiftCode(startHHMM) {
   const minutes = Number(startHHMM.slice(0, 2)) * 60 + Number(startHHMM.slice(3, 5));
   return minutes >= 17 * 60 + 30 ? 'S2' : 'S1';
 }
 
 // Today's shift window for an employee: the saved shift if there is one, otherwise the
 // default shift (checking yesterday's start too, so a night shift still counts after midnight).
-function shiftWindow(employee, shift) {
+export function shiftWindow(employee, shift) {
   if (shift?.start_time && shift?.end_time) {
     return {
       start: new Date(shift.start_time.replace(' ', 'T')),
@@ -78,7 +78,7 @@ function progressOf(win) {
   return Math.max(0, Math.min(1, (Date.now() - win.start) / total));
 }
 
-function StatusPill({ status, leaveType }) {
+export function StatusPill({ status, leaveType }) {
   const s = STATUS_STYLES[status] ?? STATUS_STYLES.Off;
   return (
     <span

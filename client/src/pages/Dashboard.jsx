@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import DepartmentFilter from '../components/filters/DepartmentFilter.jsx';
 import CurrentlyActiveWidget from '../components/active/CurrentlyActiveWidget.jsx';
+import StatusPeopleModal from '../components/active/StatusPeopleModal.jsx';
 import EmployeeDetailModal from '../components/active/EmployeeDetailModal.jsx';
 import * as employeesApi from '../api/employees.js';
 import * as activeApi from '../api/active.js';
@@ -118,7 +119,7 @@ function useCountUp(target) {
   return display;
 }
 
-function StatCard({ label, iconBg, iconColor, IcoComp, count, total = 0, prefix = '', formatFn }) {
+function StatCard({ label, iconBg, iconColor, IcoComp, count, total = 0, prefix = '', formatFn, onClick }) {
   const display = useCountUp(count);
   const formatted = formatFn ? formatFn(display) : String(display);
   const share = total > 0 ? count / total : 0;
@@ -126,7 +127,12 @@ function StatCard({ label, iconBg, iconColor, IcoComp, count, total = 0, prefix 
   return (
     <div
       className="stat-card bg-white rounded-2xl p-5 flex items-center justify-between gap-3"
-      style={{ border: '1px solid #ECEAF4', boxShadow: '0 1px 2px rgba(26,26,46,0.04), 0 8px 24px -12px rgba(108,76,241,0.14)' }}
+      style={{ border: '1px solid #ECEAF4', boxShadow: '0 1px 2px rgba(26,26,46,0.04), 0 8px 24px -12px rgba(108,76,241,0.14)', cursor: onClick ? 'pointer' : 'default' }}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={onClick ? `${label}: ${count}. Show people` : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
     >
       <div className="min-w-0">
         <div className="text-xs font-medium text-gray-400" style={{ letterSpacing: '0.02em' }}>{label}</div>
@@ -165,6 +171,7 @@ export default function Dashboard() {
   const [loading,         setLoading]          = useState(true);
   const [selectedEntry,   setSelectedEntry]   = useState(null);
   const [now,             setNow]             = useState(() => new Date());
+  const [statModal,       setStatModal]       = useState(null);
 
   const weekStart = startOfWeek(todayStr());
 
@@ -295,6 +302,7 @@ export default function Dashboard() {
         {STAT_CARDS.map(({ key, label, iconBg, iconColor, IcoComp }) => (
           <StatCard
             key={key}
+            onClick={() => setStatModal({ key, label })}
             label={label}
             iconBg={iconBg}
             iconColor={iconColor}
@@ -353,6 +361,17 @@ export default function Dashboard() {
           onEmployeeClick={setSelectedEntry}
         />
       </div>
+
+      {statModal && (
+        <StatusPeopleModal
+          title={statModal.label}
+          entries={activeEntries.filter((e) => e.status === statModal.key)}
+          shiftsByEmployeeId={shiftsByEmployeeId}
+          leavesByEmployeeId={leavesByEmployeeId}
+          onPick={(entry) => { setStatModal(null); setSelectedEntry(entry); }}
+          onClose={() => setStatModal(null)}
+        />
+      )}
 
       {selectedEntry && (
         <EmployeeDetailModal
