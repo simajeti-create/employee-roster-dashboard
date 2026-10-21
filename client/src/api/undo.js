@@ -7,3 +7,7 @@ export function getUndoStatus() {
 export function undoLastChange() {
   return post('/undo', {});
 }
+
+export function redoLastChange() {
+  return post('/undo/redo', {});
+}

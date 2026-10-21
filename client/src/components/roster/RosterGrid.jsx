@@ -46,7 +46,7 @@ export default function RosterGrid({ employees, weekStart, onWeekChange }) {
   const [savingDefaults, setSavingDefaults] = useState(false);
   const [notice, setNotice] = useState('');
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [undoInfo, setUndoInfo] = useState({ available: false });
+  const [undoInfo, setUndoInfo] = useState({ available: false, redo: { available: false } });
   const [reverting, setReverting] = useState(false);
 
   const dates = weekDates(weekStart);
@@ -69,15 +69,15 @@ export default function RosterGrid({ employees, weekStart, onWeekChange }) {
     try {
       setUndoInfo(await undoApi.getUndoStatus());
     } catch {
-      setUndoInfo({ available: false });
+      setUndoInfo({ available: false, redo: { available: false } });
     }
   }
 
-  async function revertLast() {
+  async function revertLast(redo = false) {
     setReverting(true);
     try {
-      const { label } = await undoApi.undoLastChange();
-      setNotice(`Reverted: ${label}.`);
+      const { label } = redo ? await undoApi.redoLastChange() : await undoApi.undoLastChange();
+      setNotice(`${redo ? 'Redone' : 'Reverted'}: ${label}.`);
       setSelectedCell(null);
       setSelectedBreaks([]);
       await load();
@@ -225,13 +225,22 @@ export default function RosterGrid({ employees, weekStart, onWeekChange }) {
           Change shift by date range
         </button>
         <button
-          onClick={revertLast}
+          onClick={() => revertLast(false)}
           disabled={!undoInfo.available || reverting}
           className="rounded-full text-sm font-medium"
           style={{ color: '#B83A2E', borderColor: '#F5C4BE', opacity: undoInfo.available ? 1 : 0.5 }}
           title={undoInfo.available ? `Undo: ${undoInfo.label}` : 'No changes to revert'}
         >
-          {reverting ? 'Reverting…' : '↶ Revert last change'}
+          {reverting ? 'Working…' : '↶ Revert last change'}
+        </button>
+        <button
+          onClick={() => revertLast(true)}
+          disabled={!undoInfo.redo?.available || reverting}
+          className="rounded-full text-sm font-medium"
+          style={{ color: '#13734F', borderColor: '#BFE3D2', opacity: undoInfo.redo?.available ? 1 : 0.5 }}
+          title={undoInfo.redo?.available ? `Redo: ${undoInfo.redo.label}` : 'Nothing to redo'}
+        >
+          ↷ Redo change
         </button>
 
         <div className="flex items-center gap-4 flex-wrap text-xs text-gray-500 ml-auto">

@@ -5,5 +5,6 @@ const router = Router();
 
 router.get('/', undoController.status);
 router.post('/', undoController.undo);
+router.post('/redo', undoController.redo);
 
 export default router;
