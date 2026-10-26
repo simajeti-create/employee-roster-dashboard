@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import LeaveForm from '../components/leaves/LeaveForm.jsx';
 import LeaveList from '../components/leaves/LeaveList.jsx';
+import { useCanEdit, VIEW_ONLY_TITLE } from '../context/auth.js';
 import ImportLeavesModal from '../components/leaves/ImportLeavesModal.jsx';
 import * as leavesApi from '../api/leaves.js';
 import * as employeesApi from '../api/employees.js';
 
 export default function Leaves() {
+  const canEdit = useCanEdit();
   const [leaves, setLeaves] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [editing, setEditing] = useState(null);
@@ -98,6 +100,8 @@ export default function Leaves() {
                 className="px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors shadow-sm"
               style={{ background: 'linear-gradient(135deg, #6C4CF1, #9B7CFB)', border: 'none' }}
                 onClick={() => { setEditing(null); setShowForm(true); }}
+                disabled={!canEdit}
+                title={canEdit ? undefined : VIEW_ONLY_TITLE}
               >
                 + Add leave
               </button>
@@ -132,6 +136,7 @@ export default function Leaves() {
       ) : (
         <div className="bg-white rounded-2xl p-6" style={{ border: '1px solid #E6E4EF' }}>
           <LeaveList
+            readOnly={!canEdit}
             leaves={leaves}
             employeesById={employeesById}
             onEdit={handleEdit}

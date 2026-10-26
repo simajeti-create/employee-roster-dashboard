@@ -30,3 +30,11 @@ export function remove(req, res) {
   if (!deleted) return res.status(404).json({ error: 'Employee not found' });
   res.status(204).end();
 }
+
+export function importBulk(req, res) {
+  const { rows } = req.body;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({ error: 'rows must be a non-empty array' });
+  }
+  res.json(employeeService.importEmployees(rows));
+}

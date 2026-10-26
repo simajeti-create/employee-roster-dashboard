@@ -21,6 +21,10 @@ export function listBreaksForShift(shiftId) {
   return get(`/shifts/${shiftId}/breaks`);
 }
 
+export function importRoster(data) {
+  return post('/shifts/import-roster', data);
+}
+
 export function bulkSetShifts(data) {
   return post('/shifts/bulk', data);
 }

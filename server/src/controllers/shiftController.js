@@ -1,3 +1,4 @@
+import { importRoster } from '../services/rosterImportService.js';
 import * as shiftService from '../services/shiftService.js';
 import { withUndo } from '../services/undoService.js';
 
@@ -70,4 +71,23 @@ export function applyDefaults(req, res) {
     return res.status(400).json({ error: 'start and end are required, and start must not be after end' });
   }
   res.json(shiftService.applyDefaultShifts({ start, end, employee_ids }));
+}
+
+const HHMM = /^\d{2}:\d{2}$/;
+
+export function importRosterSheet(req, res) {
+  const { year, month, s1, s2, rows } = req.body;
+  if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+    return res.status(400).json({ error: 'A valid year and month are required' });
+  }
+  if (![s1, s2].every((t) => t && HHMM.test(t.start) && HHMM.test(t.end))) {
+    return res.status(400).json({ error: 'S1 and S2 need start and end times (HH:MM)' });
+  }
+  if (s2.start < '17:30') {
+    return res.status(400).json({ error: 'S2 must start at 17:30 or later, otherwise it will not count towards NSA' });
+  }
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({ error: 'rows must be a non-empty array' });
+  }
+  res.json(importRoster({ year, month, s1, s2, rows }));
 }

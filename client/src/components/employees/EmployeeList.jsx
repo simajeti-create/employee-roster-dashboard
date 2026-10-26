@@ -20,7 +20,7 @@ function avatarGradient(name) {
   return `linear-gradient(135deg, ${a} 0%, ${b} 100%)`;
 }
 
-export default function EmployeeList({ employees, onEdit, onDelete }) {
+export default function EmployeeList({ employees, onEdit, onDelete, readOnly }) {
   if (employees.length === 0) {
     return (
       <p className="text-gray-400 italic text-sm">
@@ -35,6 +35,7 @@ export default function EmployeeList({ employees, onEdit, onDelete }) {
         <thead>
           <tr>
             <th>Name</th>
+            <th>Employee ID</th>
             <th>Department</th>
             <th>Role</th>
             <th>Default shift</th>
@@ -58,6 +59,7 @@ export default function EmployeeList({ employees, onEdit, onDelete }) {
                   </span>
                 </div>
               </td>
+              <td className="text-gray-500 text-sm font-mono-data">{emp.employee_code || '—'}</td>
               <td className="text-gray-500 text-sm">{emp.department}</td>
               <td className="text-gray-500 text-sm">{emp.role}</td>
               <td className="text-sm">
@@ -78,12 +80,14 @@ export default function EmployeeList({ employees, onEdit, onDelete }) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onEdit(emp)}
+                    disabled={readOnly}
                     className="px-3 py-1 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => onDelete(emp)}
+                    disabled={readOnly}
                     className="px-3 py-1 rounded-lg text-xs font-medium border border-red-100 text-red-500 hover:bg-red-50 transition-colors"
                   >
                     Delete

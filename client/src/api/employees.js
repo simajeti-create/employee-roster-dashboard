@@ -13,6 +13,10 @@ export function updateEmployee(id, data) {
   return put(`/employees/${id}`, data);
 }
 
+export function importEmployees(rows) {
+  return post('/employees/import', { rows });
+}
+
 export function deleteEmployee(id) {
   return del(`/employees/${id}`);
 }

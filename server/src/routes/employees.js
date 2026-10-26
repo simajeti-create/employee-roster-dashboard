@@ -4,6 +4,7 @@ import * as employeeController from '../controllers/employeeController.js';
 const router = Router();
 
 router.get('/', employeeController.list);
+router.post('/import', employeeController.importBulk);
 router.get('/:id', employeeController.get);
 router.post('/', employeeController.create);
 router.put('/:id', employeeController.update);

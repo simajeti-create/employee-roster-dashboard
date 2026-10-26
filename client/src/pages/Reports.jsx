@@ -138,15 +138,26 @@ export default function Reports() {
   }
 
   function exportToExcel() {
-    const sheetData = nsaRows.map((r) => ({
-      'Email ID':             r.email_id,
-      'Name':                 r.name,
-      'Project Name':         r.project_name,
-      'Type of Allowance':    r.type_of_allowance,
-      'Total Amount (INR)':   r.total_amount,
-      'Date Worked':          r.date_worked,
-    }));
+    // One row per employee per date worked, so each date sits in its own cell.
+    const sheetData = nsaRows.flatMap((r) => {
+      const dates = r.date_worked ? r.date_worked.split(', ') : [];
+      const perDay = dates.length ? r.total_amount / dates.length : 0;
+      return dates.map((date) => ({
+        'Email ID':             r.email_id,
+        'Name':                 r.name,
+        'Project Name':         r.project_name,
+        'Type of Allowance':    r.type_of_allowance,
+        'Total Amount (INR)':   perDay,
+        'Date Worked':          date,
+      }));
+    });
     const sheet = XLSX.utils.json_to_sheet(sheetData);
+    // Store Date Worked as real Excel dates shown like 4/3/2026 (column F, below the header).
+    sheetData.forEach((row, i) => {
+      const [m, d, y] = row['Date Worked'].split('/').map(Number);
+      sheet[`F${i + 2}`] = { t: 'n', v: Date.UTC(y, m - 1, d) / 86400000 + 25569, z: 'm/d/yyyy' };
+    });
+    sheet['!cols'] = [{ wch: 34 }, { wch: 30 }, { wch: 22 }, { wch: 20 }, { wch: 20 }, { wch: 14 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, sheet, 'NSA');
     XLSX.writeFile(wb, `NSA_Report_${start}_to_${end}.xlsx`);

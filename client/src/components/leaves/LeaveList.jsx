@@ -51,7 +51,7 @@ function LeaveStatusStepper({ status }) {
   );
 }
 
-export default function LeaveList({ leaves, employeesById, onEdit, onDelete }) {
+export default function LeaveList({ leaves, employeesById, onEdit, onDelete, readOnly }) {
   if (leaves.length === 0) {
     return <p className="empty-state">No leave records match the current filters.</p>;
   }
@@ -91,6 +91,7 @@ export default function LeaveList({ leaves, employeesById, onEdit, onDelete }) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onEdit(leave)}
+                    disabled={readOnly}
                     className="px-3 py-1 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
                   >
                     Edit
@@ -98,6 +99,7 @@ export default function LeaveList({ leaves, employeesById, onEdit, onDelete }) {
                   <button
                     className="px-3 py-1 rounded-lg text-xs font-medium border border-red-100 text-red-500 hover:bg-red-50 transition-colors"
                     onClick={() => onDelete(leave)}
+                    disabled={readOnly}
                   >
                     Delete
                   </button>

@@ -4,6 +4,8 @@ import * as leavesApi from '../../api/leaves.js';
 import * as undoApi from '../../api/undo.js';
 import ShiftEditor from './ShiftEditor.jsx';
 import BulkShiftModal from './BulkShiftModal.jsx';
+import { useCanEdit, VIEW_ONLY_TITLE } from '../../context/auth.js';
+import ImportRosterModal from './ImportRosterModal.jsx';
 import { weekDates, addDays, startOfWeek, todayStr } from '../../utils/dateUtils.js';
 
 // Shifts are labelled by start time: S2 when the shift starts at 17:30 or later, otherwise S1.
@@ -38,6 +40,7 @@ function dayHeader(dateStr) {
 }
 
 export default function RosterGrid({ employees, weekStart, onWeekChange }) {
+  const canEdit = useCanEdit();
   const [shifts, setShifts] = useState([]);
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +49,7 @@ export default function RosterGrid({ employees, weekStart, onWeekChange }) {
   const [savingDefaults, setSavingDefaults] = useState(false);
   const [notice, setNotice] = useState('');
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [undoInfo, setUndoInfo] = useState({ available: false, redo: { available: false } });
   const [reverting, setReverting] = useState(false);
 
@@ -145,6 +149,7 @@ export default function RosterGrid({ employees, weekStart, onWeekChange }) {
   }
 
   async function openCell(employee, date) {
+    if (!canEdit) return;
     const shift = findShift(employee.id, date);
     const leave = findLeave(employee.id, date);
     const breaks = shift ? await shiftsApi.listBreaksForShift(shift.id) : [];
@@ -210,35 +215,43 @@ export default function RosterGrid({ employees, weekStart, onWeekChange }) {
         </button>
         <button
           onClick={saveDefaults}
-          disabled={savingDefaults}
+          disabled={savingDefaults || !canEdit}
           className="primary rounded-full text-sm"
-          title="Turn the dashed default shifts into saved shifts for this week"
+          title={canEdit ? 'Turn the dashed default shifts into saved shifts for this week' : VIEW_ONLY_TITLE}
         >
           {savingDefaults ? 'Saving…' : 'Save default shifts for this week'}
         </button>
         <button
           onClick={() => setBulkOpen(true)}
-          disabled={employees.length === 0}
+          disabled={employees.length === 0 || !canEdit}
+          title={canEdit ? undefined : VIEW_ONLY_TITLE}
           className="rounded-full text-sm font-medium"
           style={{ color: '#6C4CF1', borderColor: '#D5CBFB' }}
         >
           Change shift by date range
         </button>
         <button
+          onClick={() => setImportOpen(true)}
+          className="rounded-full text-sm font-medium"
+          style={{ color: '#6C4CF1', borderColor: '#D5CBFB' }}
+        >
+          Import from Excel
+        </button>
+        <button
           onClick={() => revertLast(false)}
-          disabled={!undoInfo.available || reverting}
+          disabled={!canEdit || !undoInfo.available || reverting}
           className="rounded-full text-sm font-medium"
           style={{ color: '#B83A2E', borderColor: '#F5C4BE', opacity: undoInfo.available ? 1 : 0.5 }}
-          title={undoInfo.available ? `Undo: ${undoInfo.label}` : 'No changes to revert'}
+          title={!canEdit ? VIEW_ONLY_TITLE : undoInfo.available ? `Undo: ${undoInfo.label}` : 'No changes to revert'}
         >
           {reverting ? 'Working…' : '↶ Revert last change'}
         </button>
         <button
           onClick={() => revertLast(true)}
-          disabled={!undoInfo.redo?.available || reverting}
+          disabled={!canEdit || !undoInfo.redo?.available || reverting}
           className="rounded-full text-sm font-medium"
           style={{ color: '#13734F', borderColor: '#BFE3D2', opacity: undoInfo.redo?.available ? 1 : 0.5 }}
-          title={undoInfo.redo?.available ? `Redo: ${undoInfo.redo.label}` : 'Nothing to redo'}
+          title={!canEdit ? VIEW_ONLY_TITLE : undoInfo.redo?.available ? `Redo: ${undoInfo.redo.label}` : 'Nothing to redo'}
         >
           ↷ Redo change
         </button>
@@ -386,6 +399,17 @@ export default function RosterGrid({ employees, weekStart, onWeekChange }) {
             </tfoot>
           </table>
         </div>
+      )}
+
+      {importOpen && (
+        <ImportRosterModal
+          defaultYear={Number(weekStart.slice(0, 4))}
+          onClose={() => setImportOpen(false)}
+          onImported={async ({ shifts, pto }) => {
+            setNotice(`Roster imported: ${shifts} shifts, ${pto} PTO days.`);
+            await load();
+          }}
+        />
       )}
 
       {bulkOpen && (

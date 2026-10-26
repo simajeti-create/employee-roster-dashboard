@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard.jsx';
 import Employees from './pages/Employees.jsx';
@@ -6,6 +7,9 @@ import Reports from './pages/Reports.jsx';
 import Roster from './pages/Roster.jsx';
 import LeaveCalendar from './pages/LeaveCalendar.jsx';
 import TeamOverview from './pages/TeamOverview.jsx';
+import Login from './pages/Login.jsx';
+import { AuthContext } from './context/auth.js';
+import { setToken } from './api/client.js';
 
 // ── Inline SVG nav icons ───────────────────────────────────────────
 function IconGrid() {
@@ -93,17 +97,12 @@ const NAV_GROUPS = [
   },
 ];
 
-function parseEmailInitials(email) {
-  const prefix = email.split('@')[0];
-  if (prefix.length >= 6) {
-    return (prefix[0] + prefix[4]).toUpperCase();
-  }
-  return prefix.slice(0, 2).toUpperCase();
+function userInitials(username) {
+  const words = username.trim().split(/\s+/);
+  return (words.length > 1 ? words[0][0] + words[1][0] : username.slice(0, 2)).toUpperCase();
 }
 
-const USER_INITIALS = parseEmailInitials('simajeti@deloitte.com'); // → "SJ"
-
-export default function App() {
+function Shell({ user, onLogout }) {
   const location  = useLocation();
   const navigate  = useNavigate();
   const pageLabel = PAGE_NAMES[location.pathname] ?? 'Dashboard';
@@ -245,17 +244,23 @@ export default function App() {
             />
           </div>
 
-          {/* User avatar — right-aligned */}
+          {/* User avatar + sign out — right-aligned */}
+          <button
+            onClick={onLogout}
+            className="ml-auto shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Sign out
+          </button>
           <div
-            className="ml-auto shrink-0 flex items-center justify-center font-grotesk font-bold text-white"
+            className="shrink-0 flex items-center justify-center font-grotesk font-bold text-white"
             style={{
               width: 34, height: 34, borderRadius: "50%", fontSize: 12,
               background: 'linear-gradient(135deg, #6C4CF1 0%, #9B7CFB 100%)',
               cursor: 'default', letterSpacing: '0.04em',
             }}
-            title="simajeti@deloitte.com"
+            title={user.username}
           >
-            {USER_INITIALS}
+            {userInitials(user.username)}
           </div>
         </header>
 
@@ -274,5 +279,28 @@ export default function App() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  const [user, setUser] = useState(null);
+
+  // Drop back to the login page whenever the API says the session expired.
+  useEffect(() => {
+    const expired = () => setUser(null);
+    window.addEventListener('auth-expired', expired);
+    return () => window.removeEventListener('auth-expired', expired);
+  }, []);
+
+  function logout() {
+    setToken(null);
+    setUser(null);
+  }
+
+  if (!user) return <Login onLoggedIn={setUser} />;
+  return (
+    <AuthContext.Provider value={user}>
+      <Shell user={user} onLogout={logout} />
+    </AuthContext.Provider>
   );
 }

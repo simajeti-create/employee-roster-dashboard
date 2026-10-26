@@ -109,7 +109,6 @@ export function getNsaReport({ start, end } = {}) {
     FROM shifts s
     JOIN employees e ON e.id = s.employee_id
     WHERE e.email IS NOT NULL AND e.email != ''
-      AND e.project_name IS NOT NULL AND e.project_name != ''
       AND substr(s.start_time, 12, 5) >= '17:30'
   `;
   const params = [];
@@ -127,7 +126,7 @@ export function getNsaReport({ start, end } = {}) {
         employee_id: row.employee_id,
         email: row.email,
         name: row.name,
-        project_name: row.project_name,
+        project_name: row.project_name ?? '',
         dates: new Set(),
       });
     }
@@ -141,11 +140,15 @@ export function getNsaReport({ start, end } = {}) {
     const effectiveStart = start || '2020-01-01';
     const effectiveEnd = end || todayDate();
     const weekdays = weekdaysInRange(effectiveStart, effectiveEnd);
+    const explicitShiftDays = new Set(
+      db.prepare('SELECT employee_id, work_date FROM shifts WHERE work_date >= ? AND work_date <= ?')
+        .all(effectiveStart, effectiveEnd)
+        .map((r) => `${r.employee_id}|${r.work_date}`)
+    );
 
     const defaultNsaEmployees = db.prepare(`
       SELECT * FROM employees
       WHERE email IS NOT NULL AND email != ''
-        AND project_name IS NOT NULL AND project_name != ''
         AND default_shift_start IS NOT NULL
         AND default_shift_start >= '17:30'
     `).all();
@@ -167,7 +170,7 @@ export function getNsaReport({ start, end } = {}) {
         let entry = byEmployee.get(employee.email);
 
         for (const date of weekdays) {
-          if (entry?.dates.has(date)) continue;
+          if (entry?.dates.has(date) || explicitShiftDays.has(`${employee.id}|${date}`)) continue;
           const onLeave = empLeaves.some((l) => l.start_date <= date && l.end_date >= date);
           if (onLeave) continue;
 
@@ -176,7 +179,7 @@ export function getNsaReport({ start, end } = {}) {
               employee_id: employee.id,
               email: employee.email,
               name: employee.name,
-              project_name: employee.project_name,
+              project_name: employee.project_name ?? '',
               dates: new Set(),
             };
             byEmployee.set(employee.email, entry);

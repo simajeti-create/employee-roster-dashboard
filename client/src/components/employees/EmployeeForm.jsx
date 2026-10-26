@@ -9,13 +9,14 @@ const emptyForm = {
   employment_status: 'active',
   email: '',
   project_name: '',
+  employee_code: '',
 };
 
 export default function EmployeeForm({ initial, onSave, onCancel }) {
   const isEdit = Boolean(initial?.id);
   const [form, setForm] = useState(
     initial
-      ? { ...emptyForm, ...initial, email: initial.email ?? '', project_name: initial.project_name ?? '' }
+      ? { ...emptyForm, ...initial, email: initial.email ?? '', project_name: initial.project_name ?? '', employee_code: initial.employee_code ?? '' }
       : emptyForm
   );
   const [error, setError] = useState('');
@@ -51,6 +52,10 @@ export default function EmployeeForm({ initial, onSave, onCancel }) {
       <div className="field">
         <label>Name</label>
         <input value={form.name} onChange={(e) => update('name', e.target.value)} />
+      </div>
+      <div className="field">
+        <label>Employee ID</label>
+        <input value={form.employee_code} onChange={(e) => update('employee_code', e.target.value)} />
       </div>
       <div className="field">
         <label>Department</label>

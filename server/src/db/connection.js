@@ -16,5 +16,7 @@ db.exec(schema);
 // Column migrations — safe to re-run; SQLite throws if column already exists
 try { db.exec('ALTER TABLE employees ADD COLUMN email TEXT'); } catch {}
 try { db.exec('ALTER TABLE employees ADD COLUMN project_name TEXT'); } catch {}
+try { db.exec('ALTER TABLE employees ADD COLUMN employee_code TEXT'); } catch {}
+db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_employees_code ON employees(employee_code)');
 
 export default db;

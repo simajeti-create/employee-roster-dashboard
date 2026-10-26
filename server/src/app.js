@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import authRouter from './routes/auth.js';
+import { requireAuth, requireWriteAccess } from './middleware/requireAuth.js';
 import employeesRouter from './routes/employees.js';
 import shiftsRouter from './routes/shifts.js';
 import breaksRouter from './routes/breaks.js';
@@ -12,6 +14,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.use('/api/auth', authRouter);
+app.use('/api', requireAuth, requireWriteAccess);
 
 app.use('/api/employees', employeesRouter);
 app.use('/api/shifts', shiftsRouter);

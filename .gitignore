@@ -5,3 +5,4 @@ dist/
 .env
 
 client.zip
+server/data/auth_secret
