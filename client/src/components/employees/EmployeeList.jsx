@@ -35,9 +35,15 @@ export default function EmployeeList({ employees, onEdit, onDelete, readOnly }) 
         <thead>
           <tr>
             <th>Name</th>
-            <th>Employee ID</th>
+            <th>Emp No.</th>
+            <th>Email ID</th>
             <th>Department</th>
             <th>Role</th>
+            <th>Business</th>
+            <th>Offering Portfolio</th>
+            <th>Service Offering</th>
+            <th>Project Name</th>
+            <th>WBS</th>
             <th>Default shift</th>
             <th>Status</th>
             <th></th>
@@ -60,8 +66,12 @@ export default function EmployeeList({ employees, onEdit, onDelete, readOnly }) 
                 </div>
               </td>
               <td className="text-gray-500 text-sm font-mono-data">{emp.employee_code || '—'}</td>
+              <td className="text-gray-500 text-sm">{emp.email || <span className="text-gray-300">—</span>}</td>
               <td className="text-gray-500 text-sm">{emp.department}</td>
               <td className="text-gray-500 text-sm">{emp.role}</td>
+              {[emp.business, emp.offering_portfolio, emp.service_offering, emp.project_name, emp.project_wbs].map((v, i) => (
+                <td key={i} className="text-gray-500 text-sm">{v || <span className="text-gray-300">—</span>}</td>
+              ))}
               <td className="text-sm">
                 {emp.default_shift_start && emp.default_shift_end ? (
                   <span className="font-mono-data" style={{ color: '#374151' }}>

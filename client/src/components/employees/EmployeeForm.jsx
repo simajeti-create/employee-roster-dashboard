@@ -10,13 +10,19 @@ const emptyForm = {
   email: '',
   project_name: '',
   employee_code: '',
+  business: '',
+  offering_portfolio: '',
+  service_offering: '',
+  project_wbs: '',
 };
 
 export default function EmployeeForm({ initial, onSave, onCancel }) {
   const isEdit = Boolean(initial?.id);
   const [form, setForm] = useState(
     initial
-      ? { ...emptyForm, ...initial, email: initial.email ?? '', project_name: initial.project_name ?? '', employee_code: initial.employee_code ?? '' }
+      ? { ...emptyForm, ...initial, email: initial.email ?? '', project_name: initial.project_name ?? '', employee_code: initial.employee_code ?? '',
+        business: initial.business ?? '', offering_portfolio: initial.offering_portfolio ?? '',
+        service_offering: initial.service_offering ?? '', project_wbs: initial.project_wbs ?? '' }
       : emptyForm
   );
   const [error, setError] = useState('');
@@ -54,7 +60,7 @@ export default function EmployeeForm({ initial, onSave, onCancel }) {
         <input value={form.name} onChange={(e) => update('name', e.target.value)} />
       </div>
       <div className="field">
-        <label>Employee ID</label>
+        <label>Emp No.</label>
         <input value={form.employee_code} onChange={(e) => update('employee_code', e.target.value)} />
       </div>
       <div className="field">
@@ -98,6 +104,22 @@ export default function EmployeeForm({ initial, onSave, onCancel }) {
           value={form.project_name}
           onChange={(e) => update('project_name', e.target.value)}
         />
+      </div>
+      <div className="field">
+        <label>Business</label>
+        <input value={form.business} onChange={(e) => update('business', e.target.value)} />
+      </div>
+      <div className="field">
+        <label>Offering Portfolio</label>
+        <input value={form.offering_portfolio} onChange={(e) => update('offering_portfolio', e.target.value)} />
+      </div>
+      <div className="field">
+        <label>Service Offering</label>
+        <input value={form.service_offering} onChange={(e) => update('service_offering', e.target.value)} />
+      </div>
+      <div className="field">
+        <label>Project/ Client WBS</label>
+        <input value={form.project_wbs} onChange={(e) => update('project_wbs', e.target.value)} />
       </div>
       <div className="field">
         <label>Employment status</label>

@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard.jsx';
 import Employees from './pages/Employees.jsx';
 import Leaves from './pages/Leaves.jsx';
 import Reports from './pages/Reports.jsx';
+import HoursLeave from './pages/HoursLeave.jsx';
 import Roster from './pages/Roster.jsx';
 import LeaveCalendar from './pages/LeaveCalendar.jsx';
 import TeamOverview from './pages/TeamOverview.jsx';
@@ -57,12 +58,22 @@ function IconBarChart() {
   );
 }
 
+function IconClock() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="7.5" cy="7.5" r="6"/>
+      <path d="M7.5 4v3.5l2.5 1.5"/>
+    </svg>
+  );
+}
+
 const PAGE_NAMES = {
   '/':          'Dashboard',
   '/roster':    'Roster',
   '/employees': 'Employees',
   '/leaves':    'Leaves',
-  '/reports':   'Reports',
+  '/reports':   'NSA Report',
+  '/hours-leave': 'Hours & leave',
   '/leave-calendar': 'Leave calendar',
   '/team':           'Team overview',
 };
@@ -93,6 +104,7 @@ const NAV_GROUPS = [
     label: 'Finance',
     items: [
       { to: '/reports', isNavLink: true, Icon: IconBarChart, label: 'NSA Report' },
+      { to: '/hours-leave', isNavLink: true, Icon: IconClock, label: 'Hours & leave' },
     ],
   },
 ];
@@ -272,6 +284,7 @@ function Shell({ user, onLogout }) {
               <Route path="/employees" element={<Employees />} />
               <Route path="/leaves"    element={<Leaves />} />
               <Route path="/reports"   element={<Reports />} />
+              <Route path="/hours-leave" element={<HoursLeave />} />
               <Route path="/leave-calendar" element={<LeaveCalendar />} />
               <Route path="/team"           element={<TeamOverview />} />
             </Routes>

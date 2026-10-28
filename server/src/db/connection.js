@@ -17,6 +17,9 @@ db.exec(schema);
 try { db.exec('ALTER TABLE employees ADD COLUMN email TEXT'); } catch {}
 try { db.exec('ALTER TABLE employees ADD COLUMN project_name TEXT'); } catch {}
 try { db.exec('ALTER TABLE employees ADD COLUMN employee_code TEXT'); } catch {}
+for (const col of ['business', 'offering_portfolio', 'service_offering', 'project_wbs']) {
+  try { db.exec(`ALTER TABLE employees ADD COLUMN ${col} TEXT`); } catch {}
+}
 db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_employees_code ON employees(employee_code)');
 
 export default db;

@@ -105,7 +105,8 @@ function buildSummary(weekStart, weekEnd) {
 export function getNsaReport({ start, end } = {}) {
   // Explicit qualifying shifts
   let sql = `
-    SELECT e.id AS employee_id, e.email, e.name, e.project_name, s.work_date
+    SELECT e.id AS employee_id, e.email, e.name, e.project_name, e.employee_code, e.business,
+           e.offering_portfolio, e.service_offering, e.project_wbs, s.work_date
     FROM shifts s
     JOIN employees e ON e.id = s.employee_id
     WHERE e.email IS NOT NULL AND e.email != ''
@@ -127,6 +128,11 @@ export function getNsaReport({ start, end } = {}) {
         email: row.email,
         name: row.name,
         project_name: row.project_name ?? '',
+        employee_code: row.employee_code ?? '',
+        business: row.business ?? '',
+        offering_portfolio: row.offering_portfolio ?? '',
+        service_offering: row.service_offering ?? '',
+        project_wbs: row.project_wbs ?? '',
         dates: new Set(),
       });
     }
@@ -180,6 +186,11 @@ export function getNsaReport({ start, end } = {}) {
               email: employee.email,
               name: employee.name,
               project_name: employee.project_name ?? '',
+              employee_code: employee.employee_code ?? '',
+              business: employee.business ?? '',
+              offering_portfolio: employee.offering_portfolio ?? '',
+              service_offering: employee.service_offering ?? '',
+              project_wbs: employee.project_wbs ?? '',
               dates: new Set(),
             };
             byEmployee.set(employee.email, entry);
@@ -202,7 +213,12 @@ export function getNsaReport({ start, end } = {}) {
         email_id: emp.email,
         name: emp.name,
         project_name: emp.project_name,
-        type_of_allowance: 'NSA',
+        employee_code: emp.employee_code,
+        business: emp.business,
+        offering_portfolio: emp.offering_portfolio,
+        service_offering: emp.service_offering,
+        project_wbs: emp.project_wbs,
+        type_of_allowance: 'Nightshift Allowance - Client (Temporary)',
         total_amount: emp.dates.size * 900,
         date_worked: formattedDates.join(', '),
       };

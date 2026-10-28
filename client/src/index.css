@@ -108,7 +108,8 @@ input[type="search"]::-webkit-search-cancel-button { display: none; }
 .font-mono-data { font-family: 'IBM Plex Mono', monospace; }
 
 /* ── Page fade-up transition ──────────────────────────────────── */
-.page-enter { animation: fade-up 0.22s ease both; }
+/* No forwards fill: a lingering transform would trap position:fixed modals inside the page area. */
+.page-enter { animation: fade-up 0.22s ease backwards; }
 
 /* ── Primary / danger buttons ────────────────────────────────── */
 button.primary {
